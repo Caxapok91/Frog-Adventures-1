@@ -24,43 +24,18 @@
             overflow: hidden;
         }
 
+        /* Главный контейнер игры — гибкая сетка */
         .game-container {
-            padding: 12px 20px 16px 20px;
-            border-radius: 48px;
-            background: #2e6b2a;
-            box-shadow: 0 20px 30px rgba(0,0,0,0.5), inset 0 1px 5px rgba(255,255,180,0.4);
-            display: flex;
-            flex-direction: column;
-            height: 98vh;
-            width: auto;
-            max-width: 98vw;
-        }
-
-        .play-area {
-            position: relative;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex: 1 1 auto;
-            min-height: 0;
-            margin: 8px 0;
+            max-width: 1400px;
+            background: #2e6b2a;
+            border-radius: 48px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.5), inset 0 1px 5px rgba(255,255,180,0.4);
+            padding: 12px 20px 16px 20px;
+            transition: all 0.1s ease;
         }
 
-        canvas {
-            display: block;
-            width: auto;
-            height: 100%;
-            max-width: 100%;
-            object-fit: contain;
-            border-radius: 28px;
-            box-shadow: 0 10px 18px rgba(0,0,0,0.4);
-            cursor: pointer;
-            background: #8ec07c;
-            outline: none;
-            touch-action: none;
-        }
-
+        /* Верхняя панель информационная */
         .info-panel {
             display: flex;
             justify-content: space-between;
@@ -137,6 +112,98 @@
             box-shadow: 0 4px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.14);
         }
 
+        /* ГЛАВНЫЙ БЛОК: canvas + левая и правая кнопки (только в ландшафте) */
+        .playground-row {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        /* Боковые контейнеры для кнопок в ландшафте (по умолчанию скрыты) */
+        .landscape-side-control {
+            display: none;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .side-move-panel {
+            background: rgba(29, 71, 25, 0.65);
+            border-radius: 68px;
+            padding: 20px 12px;
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            box-shadow: 0 8px 12px rgba(0,0,0,0.3);
+        }
+
+        .side-move-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 45px;
+            font-size: 2.4rem;
+            background: #2c2817e6;
+            border: none;
+            color: #ffe0a3;
+            text-shadow: 2px 2px 0 #41371a;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.4);
+            transition: transform 0.04s linear;
+            cursor: pointer;
+            touch-action: manipulation;
+            font-weight: bold;
+        }
+
+        .side-move-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+        }
+
+        .side-jump-btn {
+            background: #e6b86eed;
+            width: 70px;
+            height: 70px;
+            border-radius: 45px;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #2f2a0f;
+            border: none;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.4);
+            transition: transform 0.04s linear;
+            cursor: pointer;
+        }
+
+        .side-jump-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+        }
+
+        .play-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1 1 auto;
+        }
+
+        canvas {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 65vh;
+            border-radius: 28px;
+            box-shadow: 0 10px 18px rgba(0,0,0,0.4);
+            cursor: pointer;
+            background: #8ec07c;
+            outline: none;
+            touch-action: none;
+        }
+
+        /* Мобильные нижние контролы (по умолчанию показываются в портрете) */
         .mobile-controls {
             margin: 8px 16px 2px 16px;
             padding: 6px 12px;
@@ -189,188 +256,208 @@
             font-weight: bold;
         }
 
-        /* ========== АДАПТАЦИЯ ДЛЯ ГОРИЗОНТАЛЬНОЙ ОРИЕНТАЦИИ ========== */
+        /* ========== ЛАНДШАФТНАЯ ОРИЕНТАЦИЯ: боковые кнопки слева/справа ========== */
         @media (orientation: landscape) {
             .game-container {
-                padding: 8px 16px;
-                height: 96vh;
-                max-height: 96vh;
+                padding: 12px 20px;
+                width: 98vw;
             }
             
-            .info-panel {
-                margin: 2px 8px;
-                gap: 8px;
+            .playground-row {
+                display: flex;
+                flex-direction: row;
+                gap: 18px;
+                align-items: center;
+                justify-content: center;
             }
             
-            .score-card, .best-card {
-                padding: 3px 14px;
-                font-size: 1rem;
-                gap: 6px;
+            /* Показываем боковые контроллеры */
+            .landscape-side-control {
+                display: flex;
             }
             
-            .score-card span:first-child, .best-card span:first-child {
-                font-size: 0.7rem;
-            }
-            
-            .restart-btn {
-                padding: 3px 16px;
-                font-size: 0.8rem;
-                box-shadow: 0 4px 0 #8b5a2b;
-            }
-            
-            .below-btn {
-                padding: 5px 20px;
-                font-size: 0.8rem;
-                min-width: 100px;
-                box-shadow: 0 4px 0 rgba(0,0,0,0.35);
-            }
-            
+            /* Скрываем нижнюю панель с кнопками */
             .mobile-controls {
-                margin: 4px 12px 0px 12px;
-                padding: 4px 10px;
-                gap: 12px;
-            }
-            
-            .move-btn {
-                width: 55px;
-                height: 48px;
-                font-size: 1.4rem;
-                box-shadow: 0 4px 0 rgba(0,0,0,0.35);
-            }
-            
-            .jump-btn {
-                width: 120px;
-                height: 48px;
-                font-size: 0.9rem;
-                box-shadow: 0 4px 0 rgba(0,0,0,0.35);
-            }
-        }
-        
-        /* Очень низкая высота (узкие экраны) */
-        @media (orientation: landscape) and (max-height: 500px) {
-            .game-container {
-                padding: 4px 12px;
-                height: 98vh;
-            }
-            
-            .info-panel {
-                margin: 0px 6px;
-                gap: 6px;
-            }
-            
-            .score-card, .best-card {
-                padding: 2px 10px;
-                font-size: 0.85rem;
-            }
-            
-            .restart-btn {
-                padding: 2px 12px;
-                font-size: 0.7rem;
-            }
-            
-            .below-btn {
-                padding: 3px 14px;
-                font-size: 0.7rem;
-                min-width: 80px;
-            }
-            
-            .mobile-controls {
-                margin: 2px 8px 0px 8px;
-                padding: 3px 8px;
-                gap: 8px;
-            }
-            
-            .move-btn {
-                width: 48px;
-                height: 40px;
-                font-size: 1.2rem;
-                box-shadow: 0 3px 0 rgba(0,0,0,0.35);
-            }
-            
-            .jump-btn {
-                width: 100px;
-                height: 40px;
-                font-size: 0.8rem;
-                box-shadow: 0 3px 0 rgba(0,0,0,0.35);
+                display: none;
             }
             
             .play-area {
-                margin: 4px 0;
-            }
-        }
-        
-        /* Экстремально низкая высота */
-        @media (orientation: landscape) and (max-height: 400px) {
-            .move-btn {
-                width: 42px;
-                height: 36px;
-                font-size: 1rem;
+                flex: 1 1 auto;
+                min-width: 0;
             }
             
-            .jump-btn {
-                width: 85px;
-                height: 36px;
-                font-size: 0.7rem;
+            canvas {
+                max-height: 70vh;
+                width: 100%;
+                height: auto;
+                object-fit: contain;
             }
             
-            .score-card, .best-card {
-                font-size: 0.75rem;
-                padding: 1px 8px;
-            }
-        }
-        
-        /* Вертикальная ориентация на узких экранах */
-        @media (max-width: 650px) and (orientation: portrait) {
             .info-panel {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 6px;
-                justify-items: center;
-                margin: 4px 6px;
+                margin: 4px 8px;
             }
             
             .score-card, .best-card {
-                font-size: 1rem;
-                padding: 3px 12px;
-                width: auto;
+                padding: 4px 18px;
+                font-size: 1.2rem;
             }
             
             .restart-btn {
-                grid-column: 1 / -1;
-                justify-self: center;
-                padding: 4px 16px;
+                padding: 4px 20px;
             }
             
             .below-btn {
-                padding: 6px 18px;
-                font-size: 0.85rem;
+                padding: 6px 24px;
+            }
+            
+            /* Адаптация для очень широких экранов уменьшаем размер боковых кнопок */
+            .side-move-btn {
+                width: 65px;
+                height: 65px;
+                font-size: 2.2rem;
+            }
+            .side-jump-btn {
+                width: 65px;
+                height: 65px;
+                font-size: 1.5rem;
+            }
+        }
+        
+        /* Для узких ландшафтных экранов (например, высота малая) */
+        @media (orientation: landscape) and (max-height: 550px) {
+            .side-move-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 12px;
+            }
+            .side-jump-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1.3rem;
+            }
+            .side-move-panel {
+                padding: 12px 8px;
+                gap: 20px;
+            }
+            canvas {
+                max-height: 58vh;
+            }
+            .score-card, .best-card {
+                font-size: 1rem;
+                padding: 2px 12px;
+            }
+        }
+        
+        /* Экстремально компактные экраны */
+        @media (orientation: landscape) and (max-height: 420px) {
+            .side-move-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 12px;
+            }
+            .side-jump-btn {
+                width: 48px;
+                height: 48px;
+                font-size:12px;
+            }
+            .side-move-panel {
+                padding: 8px 6px;
+                gap: 16px;
+            }
+            canvas {
+                max-height: 50vh;
+            }
+        }
+        
+        /* Портретная ориентация: классический вид + боковые панели не мешают */
+        @media (orientation: portrait) {
+            .landscape-side-control {
+                display: none;
+            }
+            .mobile-controls {
+                display: flex;
+            }
+            .playground-row {
+                display: block;
+            }
+            .play-area {
+                margin: 8px 0;
+            }
+            canvas {
+                width: 100%;
+                max-height: 58vh;
+            }
+            .info-panel {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .restart-btn {
+                grid-column: 1 / -1;
+                justify-self: center;
+                padding: 5px 18px;
+            }
+        }
+        
+        /* Планшеты в портрете */
+        @media (max-width: 750px) and (orientation: portrait) {
+            .score-card, .best-card {
+                font-size: 1rem;
+                padding: 4px 12px;
+            }
+            .move-btn {
+                width: 65px;
+                height: 55px;
+            }
+            .jump-btn {
+                width: 130px;
+                height: 55px;
             }
         }
     </style>
 </head>
 <body>
-<div>
-    <div class="game-container">
-        <div class="info-panel">
-            <div class="score-card">🐸 СЧЁТ: <span id="scoreValue">0</span></div>
-            <div class="score-card">⏱️ ВРЕМЯ: <span id="timeValue">0.0с</span></div>
-            <button class="restart-btn" id="restartButton">🌿 НОВАЯ ИГРА</button>
-            <div class="best-card">🏆 РЕКОРД: <span id="bestValue">—</span></div>
+<div class="game-container">
+    <div class="info-panel">
+        <div class="score-card">🐸 СЧЁТ: <span id="scoreValue">0</span></div>
+        <div class="score-card">⏱️ ВРЕМЯ: <span id="timeValue">0.0с</span></div>
+        <button class="restart-btn" id="restartButton">🌿 НОВАЯ ИГРА</button>
+        <div class="best-card">🏆 РЕКОРД: <span id="bestValue">—</span></div>
+    </div>
+    <div class="below-buttons">
+        <button class="below-btn" id="pauseButton" type="button">⏸️ ПАУЗА</button>
+    </div>
+
+    <!-- Новая сетка: слева контроллеры (ландшафт), посередине canvas, справа контроллеры (ландшафт) -->
+    <div class="playground-row">
+        <!-- Левая боковая панель управления (влево + прыжок) -->
+        <div class="landscape-side-control" id="leftSideControls">
+            <div class="side-move-panel">
+                <button class="side-move-btn" id="sideBtnLeft" type="button">◀</button>
+                <button class="side-jump-btn" id="sideBtnJumpLeft" type="button">🐸<br>ПРЫГ</button>
+            </div>
         </div>
-        <div class="below-buttons">
-            <button class="below-btn" id="pauseButton" type="button">⏸️ ПАУЗА</button>
-        </div>
+
         <div class="play-area">
             <canvas id="gameCanvas" width="900" height="500" tabindex="0"></canvas>
         </div>
 
-        <div class="mobile-controls" aria-hidden="false">
-            <div class="move-pad" aria-label="Движение">
-                <button class="move-btn" id="btnLeft" type="button">◀</button>
-                <button class="move-btn" id="btnRight" type="button">▶</button>
+        <!-- Правая боковая панель управления (вправо + дублирующий прыжок для удобства) -->
+        <div class="landscape-side-control" id="rightSideControls">
+            <div class="side-move-panel">
+                <button class="side-move-btn" id="sideBtnRight" type="button">▶</button>
+                <button class="side-jump-btn" id="sideBtnJumpRight" type="button">🐸<br>ПРЫГ</button>
             </div>
-            <button class="jump-btn" id="btnJump" type="button">ПРЫЖОК</button>
         </div>
+    </div>
+
+    <!-- Мобильные контролы для портрета -->
+    <div class="mobile-controls" aria-hidden="false">
+        <div class="move-pad" aria-label="Движение">
+            <button class="move-btn" id="btnLeft" type="button">◀</button>
+            <button class="move-btn" id="btnRight" type="button">▶</button>
+        </div>
+        <button class="jump-btn" id="btnJump" type="button">ПРЫЖОК</button>
     </div>
 </div>
 
@@ -618,7 +705,7 @@
             }
         }
         
-        // Отрисовка (та же что и ранее, компактная)
+        // Отрисовка (стандартная)
         function drawBackground() {
             const grad = ctx.createLinearGradient(0, 0, 0, H);
             grad.addColorStop(0, '#b0ddff');
@@ -788,6 +875,7 @@
             window.addEventListener('keyup', (e) => { setKey(e.code, false); });
             window.addEventListener('blur', () => { for (let k in keys) keys[k] = false; });
             
+            // портретные кнопки
             const btnLeft = document.getElementById('btnLeft');
             const btnRight = document.getElementById('btnRight');
             const btnJump = document.getElementById('btnJump');
@@ -801,6 +889,17 @@
             bind(btnLeft, () => { setKey('ArrowLeft', true); setKey('KeyA', true); }, () => { setKey('ArrowLeft', false); setKey('KeyA', false); });
             bind(btnRight, () => { setKey('ArrowRight', true); setKey('KeyD', true); }, () => { setKey('ArrowRight', false); setKey('KeyD', false); });
             bind(btnJump, () => { setKey('Space', true); setKey('ArrowUp', true); setKey('KeyW', true); }, () => { setKey('Space', false); setKey('ArrowUp', false); setKey('KeyW', false); });
+            
+            // боковые ландшафтные кнопки
+            const sideLeft = document.getElementById('sideBtnLeft');
+            const sideRight = document.getElementById('sideBtnRight');
+            const sideJumpL = document.getElementById('sideBtnJumpLeft');
+            const sideJumpR = document.getElementById('sideBtnJumpRight');
+            
+            bind(sideLeft, () => { setKey('ArrowLeft', true); setKey('KeyA', true); }, () => { setKey('ArrowLeft', false); setKey('KeyA', false); });
+            bind(sideRight, () => { setKey('ArrowRight', true); setKey('KeyD', true); }, () => { setKey('ArrowRight', false); setKey('KeyD', false); });
+            bind(sideJumpL, () => { setKey('Space', true); setKey('ArrowUp', true); setKey('KeyW', true); }, () => { setKey('Space', false); setKey('ArrowUp', false); setKey('KeyW', false); });
+            bind(sideJumpR, () => { setKey('Space', true); setKey('ArrowUp', true); setKey('KeyW', true); }, () => { setKey('Space', false); setKey('ArrowUp', false); setKey('KeyW', false); });
         }
         
         document.getElementById('pauseButton').addEventListener('click', () => { if(gameRunning) setPaused(!paused); });
