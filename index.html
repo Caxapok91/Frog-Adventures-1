@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐸 Лягушонок против кузнечиков 🦗</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1a6b2f 0%, #0a3a18 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+        }
+
+        .game-container {
+            padding: 16px 20px 20px 20px;
+            border-radius: 56px;
+            background: #2e6b2a;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.5), inset 0 1px 5px rgba(255,255,180,0.4);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 28px;
+            box-shadow: 0 10px 18px rgba(0,0,0,0.4);
+            cursor: pointer;
+            background: #8ec07c;
+            outline: none;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 20px 8px 20px;
+            gap: 20px;
+        }
+
+        .score-card, .best-card {
+            background: #2c2817;
+            padding: 6px 22px;
+            border-radius: 50px;
+            color: #fef3c7;
+            text-shadow: 2px 2px 0 #41371a;
+            font-weight: bold;
+            font-size: 1.5rem;
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            box-shadow: inset 0 1px 3px #aa9f6e, 0 5px 0 #161305;
+        }
+
+        .score-card span:first-child, .best-card span:first-child {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .restart-btn {
+            background: #e6b86e;
+            border: none;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 6px 28px;
+            border-radius: 40px;
+            color: #2f2a0f;
+            cursor: pointer;
+            transition: 0.05s linear;
+            box-shadow: 0 5px 0 #8b5a2b;
+        }
+
+        .restart-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #8b5a2b;
+        }
+
+        .controls {
+            background: #1d4719;
+            border-radius: 60px;
+            padding: 8px 22px;
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #e9ffcf;
+        }
+
+        .controls kbd {
+            background: #2c2e1b;
+            padding: 4px 12px;
+            border-radius: 32px;
+            margin: 0 4px;
+            font-weight: bold;
+            color: #ffe0a3;
+            box-shadow: inset 0 1px 0 0 #897e48, 0 2px 0 #1b1a0a;
+        }
+
+        .jump-hint {
+            background: #e6b86e33;
+            backdrop-filter: blur(3px);
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
+
+        @media (max-width: 780px) {
+            .info-panel { gap: 10px; margin: 8px 8px; }
+            .score-card, .best-card { font-size: 1rem; padding: 2px 16px; }
+            .controls { font-size: 0.7rem; gap: 12px; }
+            .restart-btn { padding: 4px 20px; font-size: 0.9rem;}
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="900" height="500" tabindex="0"></canvas>
+        <div class="info-panel">
+            <div class="score-card">🐸 СЧЁТ: <span id="scoreValue">0</span></div>
+            <div class="score-card">⏱️ ВРЕМЯ: <span id="timeValue">0.0</span></div>
+            <button class="restart-btn" id="restartButton">🌿 НОВАЯ ИГРА</button>
+            <div class="best-card">🏆 РЕКОРД: <span id="bestValue">—</span></div>
+        </div>
+        <div class="controls">
+            <span>◀  <kbd>A</kbd> / <kbd>←</kbd>  </span>
+            <span> ▶  <kbd>D</kbd> / <kbd>→</kbd>  </span>
+            <span> 🦗 ПРЫЖОК — <kbd>W</kbd> / <kbd>↑</kbd> / <kbd>ПРОБЕЛ</kbd></span>
+        </div>
+        <div style="text-align: center; margin-top: 8px; font-size: 12px; color: #e5ffc7;">
+            💡 Прыжок срабатывает по нажатию клавиши.
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ----- Холст -----
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // ----- РАЗМЕРЫ МИРА -----
+        const W = 900, H = 500;
+        // МЯГКАЯ ГРАВИТАЦИЯ
+        const GRAVITY = 0.28;
+        // ПРЫЖОК: простой импульс по нажатию
+        const JUMP_FORCE = -9.2;
+        
+        // ----- ЛЯГУШОНОК (теперь используем эмодзи 🐸 как главный визуал) -----
+        const FROG_W = 42;
+        const FROG_H = 42;
+        let frog = {
+            x: 80,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            width: FROG_W,
+            height: FROG_H,
+            grounded: false,
+            facingRight: true
+        };
+        
+        // ----- Платформы -----
+        let platforms = [];
+        
+        // ----- КУЗНЕЧИКИ - храним эмодзи 🦗 -----
+        let grasshoppers = [];
+        const GRASS_SIZE = 32;   // размер эмодзи (отрисовка через текст)
+        
+        // ----- Счёт и рекорд -----
+        let score = 0;
+        let bestTimeMs = null; // чем меньше, тем лучше
+        try {
+            const saved = localStorage.getItem('frogEmojiBestTimeMs');
+            if(saved && !isNaN(parseFloat(saved))) {
+                bestTimeMs = parseFloat(saved);
+                document.getElementById('bestValue').innerText = (bestTimeMs/1000).toFixed(1) + "с";
+            }
+        } catch(e) {}
+        
+        let gameRunning = true;
+        let gameWon = false;
+
+        // ----- ТАЙМЕР -----
+        let startTimeMs = 0;
+        let elapsedTimeMs = 0;
+
+        function formatTimeMs(ms) {
+            return (ms / 1000).toFixed(1) + "с";
+        }
+        
+        // ----- УПРАВЛЕНИЕ (исправлено: четкое отслеживание кнопок)-----
+        const keys = {
+            ArrowLeft: false, ArrowRight: false,
+            KeyA: false, KeyD: false,
+            Space: false, ArrowUp: false, KeyW: false
+        };
+        
+        // ----- Вспомогательные функции -----
+        function saveBestTimeIfNeeded() {
+            if(!gameWon) return;
+            if(bestTimeMs === null || elapsedTimeMs < bestTimeMs) {
+                bestTimeMs = elapsedTimeMs;
+                document.getElementById('bestValue').innerText = formatTimeMs(bestTimeMs);
+                try { localStorage.setItem('frogEmojiBestTimeMs', String(bestTimeMs)); } catch(e) {}
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('scoreValue').innerText = score;
+            document.getElementById('timeValue').innerText = (elapsedTimeMs/1000).toFixed(1);
+        }
+        
+        // ----- ГЕНЕРАЦИЯ УРОВНЯ -----
+        function buildLevel() {
+            platforms = [];
+            // Основная земля (с травой)
+            const groundY = H - 40;
+            platforms.push({ x: 0, y: groundY, w: W, h: 40 });
+            
+            // Разнообразные платформы
+            platforms.push({ x: 70, y: H - 120, w: 90, h: 22 });
+            platforms.push({ x: 260, y: H - 175, w: 100, h: 22 });
+            platforms.push({ x: 470, y: H - 225, w: 90, h: 22 });
+            platforms.push({ x: 650, y: H - 140, w: 80, h: 22 });
+            platforms.push({ x: 780, y: H - 210, w: 75, h: 22 });
+            platforms.push({ x: 380, y: H - 295, w: 85, h: 20 });
+            platforms.push({ x: 140, y: H - 250, w: 75, h: 20 });
+            platforms.push({ x: 570, y: H - 345, w: 70, h: 20 });
+            platforms.push({ x: 815, y: H - 345, w: 65, h: 20 });
+            platforms.push({ x: 30, y: H - 335, w: 60, h: 20 });
+            platforms.push({ x: 500, y: H - 400, w: 70, h: 20 });  // высокая
+            platforms.push({ x: 220, y: H - 380, w: 65, h: 20 });
+            
+            // КУЗНЕЧИКИ (эмодзи) - генерируем в интересных местах
+            grasshoppers = [];
+            function isOverlapPlatform(px, py, sz) {
+                for(let p of platforms) {
+                    if(px+sz > p.x && px < p.x+p.w && py+sz > p.y && py < p.y+p.h) return true;
+                }
+                return false;
+            }
+            
+            // Красивые позиции для кузнечиков
+            const candidateSpots = [
+                { x: 100, y: H - 155 }, { x: 310, y: H - 207 }, { x: 510, y: H - 255 },
+                { x: 680, y: H - 170 }, { x: 810, y: H - 240 }, { x: 420, y: H - 325 },
+                { x: 175, y: H - 280 }, { x: 605, y: H - 375 }, { x: 840, y: H - 375 },
+                { x: 55, y: H - 365 },  { x: 45, y: H - 72 },    { x: 250, y: H - 85 },
+                { x: 460, y: H - 68 },  { x: 710, y: H - 74 },   { x: 870, y: H - 65 },
+                { x: 790, y: H - 125 }, { x: 340, y: H - 150 },  { x: 540, y: H - 290 },
+                { x: 735, y: H - 310 }, { x: 120, y: H - 410 },  { x: 530, y: H - 435 },
+                { x: 250, y: H - 420 }, { x: 845, y: H - 290 }
+            ];
+            
+            for(let spot of candidateSpots) {
+                if(spot.y + GRASS_SIZE-5 <= H-5 && spot.y >= 12 && !isOverlapPlatform(spot.x, spot.y, GRASS_SIZE-6)) {
+                    grasshoppers.push({ x: spot.x, y: spot.y, w: GRASS_SIZE, h: GRASS_SIZE, collected: false });
+                }
+            }
+            // Добавляем немного случайных для живости
+            for(let i=0;i<4;i++) {
+                let rx = 25 + Math.random() * (W - GRASS_SIZE - 20);
+                let ry = 40 + Math.random() * (H - GRASS_SIZE - 60);
+                let ok = !isOverlapPlatform(rx, ry, GRASS_SIZE-6);
+                for(let g of grasshoppers) if(Math.hypot(g.x-rx, g.y-ry) < GRASS_SIZE) ok = false;
+                if(ok && ry+GRASS_SIZE <= H-8) grasshoppers.push({ x: rx, y: ry, w: GRASS_SIZE, h: GRASS_SIZE, collected: false });
+            }
+        }
+        
+        // ----- СБРОС ИГРЫ -----
+        function resetGame() {
+            gameRunning = true;
+            gameWon = false;
+            score = 0;
+            startTimeMs = performance.now();
+            elapsedTimeMs = 0;
+            updateUI();
+            buildLevel();
+            // начальное положение на земле или первой платформе
+            let startPlat = platforms.find(p => p.x <= 80 && p.x+p.w >= 80+FROG_W);
+            if(!startPlat) startPlat = platforms[0];
+            frog.x = 80;
+            frog.y = startPlat.y - FROG_H;
+            frog.vx = 0;
+            frog.vy = 0;
+            frog.grounded = true;
+            frog.facingRight = true;
+            if(frog.y + FROG_H > H) frog.y = H - FROG_H - 2;
+            if(bestTimeMs !== null) {
+                document.getElementById('bestValue').innerText = formatTimeMs(bestTimeMs);
+            } else {
+                document.getElementById('bestValue').innerText = "—";
+            }
+        }
+        
+        // ----- ФИЗИКА И СТОЛКНОВЕНИЯ -----
+        function handleCollisions() {
+            frog.grounded = false;
+            // Горизонтальное движение
+            frog.x += frog.vx;
+            if(frog.x < 0) frog.x = 0;
+            if(frog.x + FROG_W > W) frog.x = W - FROG_W;
+            
+            for(let plat of platforms) {
+                if(frog.x + FROG_W > plat.x && frog.x < plat.x + plat.w &&
+                    frog.y + FROG_H > plat.y && frog.y < plat.y + plat.h) {
+                    let leftOverlap = (frog.x + FROG_W) - plat.x;
+                    let rightOverlap = (plat.x + plat.w) - frog.x;
+                    if(leftOverlap < rightOverlap) frog.x = plat.x - FROG_W;
+                    else frog.x = plat.x + plat.w;
+                }
+            }
+            
+            // Вертикаль
+            frog.vy += GRAVITY;
+            frog.y += frog.vy;
+            
+            for(let plat of platforms) {
+                if(frog.x + FROG_W > plat.x && frog.x < plat.x + plat.w &&
+                    frog.y + FROG_H > plat.y && frog.y < plat.y + plat.h) {
+                    // Приземление сверху
+                    if(frog.vy >= 0 && (frog.y + FROG_H - frog.vy) <= plat.y + 12) {
+                        frog.y = plat.y - FROG_H;
+                        frog.vy = 0;
+                        frog.grounded = true;
+                    }
+                    // Удар головой
+                    else if(frog.vy < 0 && frog.y - frog.vy >= plat.y + plat.h - 6) {
+                        frog.y = plat.y + plat.h;
+                        frog.vy = 0;
+                    }
+                }
+            }
+            
+            // Границы мира
+            if(frog.y + FROG_H > H) {
+                frog.y = H - FROG_H;
+                frog.vy = 0;
+                frog.grounded = true;
+            }
+            if(frog.y < 0) {
+                frog.y = 0;
+                if(frog.vy < 0) frog.vy = 0;
+            }
+            
+            // grounded выставляется в блоках коллизий выше
+        }
+        
+        // ----- ПРОСТОЙ ПРЫЖОК ПО НАЖАТИЮ -----
+        let jumpConsumed = false;
+        function updateJump() {
+            if(!gameRunning) return;
+            const jumpHeld = (keys.Space || keys.ArrowUp || keys.KeyW);
+
+            // Срабатывает один раз на нажатие, только если стоим на земле/платформе
+            if(frog.grounded && jumpHeld && !jumpConsumed) {
+                frog.vy = JUMP_FORCE;
+                frog.grounded = false;
+                jumpConsumed = true;
+            }
+
+            if(!jumpHeld) {
+                jumpConsumed = false;
+            }
+        }
+        
+        // ----- СБОР КУЗНЕЧИКОВ (Касание с эмодзи) -----
+        function collectGrasshoppers() {
+            for(let g of grasshoppers) {
+                if(g.collected) continue;
+                // Проверка столкновения (прямоугольник)
+                if(frog.x < g.x + g.w && frog.x + FROG_W > g.x &&
+                   frog.y < g.y + g.h && frog.y + FROG_H > g.y) {
+                    g.collected = true;
+                    score++;
+                    updateUI();
+                }
+            }
+        }
+
+        function checkWin() {
+            if(gameWon || !gameRunning) return;
+            const remaining = grasshoppers.filter(g => !g.collected).length;
+            if(remaining === 0) {
+                gameWon = true;
+                gameRunning = false;
+                saveBestTimeIfNeeded();
+            }
+        }
+        
+        // ----- ДВИЖЕНИЕ -----
+        function updateMovement() {
+            if(!gameRunning) return;
+            let move = 0;
+            if(keys.ArrowLeft || keys.KeyA) move = -1;
+            if(keys.ArrowRight || keys.KeyD) move = 1;
+            frog.vx = move * 4.0;
+            if(frog.vx !== 0) frog.facingRight = frog.vx > 0;
+        }
+        
+        function checkGameOver() {
+            if(frog.y + FROG_H > H + 45 || frog.y < -75) {
+                gameRunning = false;
+                gameWon = false;
+            }
+        }
+        
+        // ----- ОТРИСОВКА -----
+        function drawBackground() {
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#b0ddff');
+            grad.addColorStop(0.6, '#cef0a8');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+            // Солнышко
+            ctx.fillStyle = '#fff6b0';
+            ctx.shadowBlur = 18;
+            ctx.beginPath();
+            ctx.arc(80, 65, 38, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#ffdd77';
+            ctx.beginPath();
+            ctx.arc(80, 65, 32, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Облака
+            ctx.fillStyle = 'rgba(255,250,210,0.9)';
+            ctx.beginPath();
+            ctx.ellipse(210, 55, 50, 35, 0, 0, Math.PI*2);
+            ctx.ellipse(260, 48, 45, 32, 0, 0, Math.PI*2);
+            ctx.ellipse(170, 50, 40, 30, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(730, 75, 55, 40, 0, 0, Math.PI*2);
+            ctx.ellipse(790, 68, 50, 37, 0, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
+        function drawPlatforms() {
+            for(let p of platforms) {
+                ctx.fillStyle = '#b47c44';
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = '#e0a56a';
+                ctx.fillRect(p.x+2, p.y-5, p.w-4, 7);
+                ctx.fillStyle = '#6f4f2a';
+                ctx.fillRect(p.x, p.y+3, p.w, 5);
+                ctx.fillStyle = '#8bb56a';
+                ctx.fillRect(p.x, p.y-2, p.w, 4);
+                for(let i=0;i<5;i++) {
+                    ctx.fillStyle = '#527a34';
+                    ctx.fillRect(p.x+5+i*14, p.y-1, 3, 4);
+                }
+            }
+        }
+        
+        // ----- РИСУЕМ КУЗНЕЧИКОВ ЧЕРЕЗ ЭМОДЗИ -----
+        function drawGrasshoppers() {
+            for(let g of grasshoppers) {
+                if(g.collected) continue;
+                ctx.font = `${GRASS_SIZE+6}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", monospace`;
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = "#2c4b1a";
+                ctx.fillStyle = "#000000";
+                ctx.fillText("🦗", g.x+1, g.y+GRASS_SIZE-2);
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText("🦗", g.x, g.y+GRASS_SIZE-3);
+                ctx.fillStyle = "#f5e65c";
+                ctx.fillText("🦗", g.x-1, g.y+GRASS_SIZE-4);
+                ctx.fillStyle = "#3a831c";
+                ctx.fillText("🦗", g.x-0.5, g.y+GRASS_SIZE-3.5);
+                ctx.fillStyle = "#000000";
+                ctx.fillText("🦗", g.x, g.y+GRASS_SIZE-3);
+                ctx.fillStyle = "#ffd966";
+                ctx.font = `${GRASS_SIZE-6}px "Segoe UI Emoji"`;
+                ctx.fillText("✨", g.x+18, g.y+12);
+                ctx.shadowBlur = 0;
+            }
+        }
+        
+        // ----- ЛЯГУШОНОК - ЭМОДЗИ 🐸 + эффекты -----
+        function drawFrog() {
+            let x = frog.x, y = frog.y;
+            ctx.save();
+            // Направление взгляда (разворот эмодзи через масштабирование)
+            if(!frog.facingRight) {
+                ctx.translate(x + FROG_W/2, y + FROG_H/2);
+                ctx.scale(-1, 1);
+                ctx.translate(-(x + FROG_W/2), -(y + FROG_H/2));
+            }
+            
+            // Тень лягушонка
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = "rgba(0,0,0,0.3)";
+            // Основной эмодзи лягушки
+            ctx.font = `48px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"`;
+            ctx.fillStyle = "#000000";
+            ctx.fillText("🐸", x+3, y+FROG_H-6);
+            ctx.fillStyle = "#48c72a";
+            ctx.fillText("🐸", x+2, y+FROG_H-7);
+            ctx.fillStyle = "#6bd63a";
+            ctx.fillText("🐸", x+1, y+FROG_H-8);
+            ctx.fillStyle = "#76e642";
+            ctx.fillText("🐸", x, y+FROG_H-9);
+            
+            // Добавляем румянец и глазки (сверху эмодзи, для живости)
+            ctx.font = `18px "Segoe UI Emoji"`;
+            ctx.fillStyle = "#ff8a8a";
+            ctx.fillText("❤️", x+6, y+18);
+            ctx.fillText("❤️", x+28, y+18);
+            ctx.font = `22px "Segoe UI Emoji"`;
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText("⚪", x+10, y+15);
+            ctx.fillText("⚪", x+26, y+15);
+            ctx.fillStyle = "#2c2c2c";
+            ctx.fillText("●", x+12, y+16);
+            ctx.fillText("●", x+28, y+16);
+            
+            // (зарядка прыжка убрана — прыжок простой по нажатию)
+            
+            ctx.shadowBlur = 0;
+            ctx.restore();
+            
+            // Эффект "следа" при прыжке
+            if(!frog.grounded && frog.vy < -2) {
+                ctx.fillStyle = "#aaffaa66";
+                ctx.beginPath();
+                ctx.ellipse(x+FROG_W/2, y+FROG_H-5, 10, 5, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        
+        // ЦЕНТРАЛЬНЫЙ ИНДИКАТОР ОСТАВШИХСЯ КУЗНЕЧИКОВ (красиво)
+        function drawRemainingCounter() {
+            const remaining = grasshoppers.filter(g => !g.collected).length;
+            const mainText = `🦗 ${remaining}`;
+            ctx.font = 'bold 32px "Segoe UI Emoji", monospace';
+            const mainW = ctx.measureText(mainText).width;
+            const mainX = W/2 - mainW/2;
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = "#2d571a";
+            ctx.fillStyle = '#fffed8';
+            ctx.fillText(mainText, mainX + 1, 62);
+            ctx.fillStyle = '#375f1a';
+            ctx.fillText(mainText, mainX - 1, 60);
+            ctx.fillStyle = '#f9f3b2';
+            ctx.fillText(mainText, mainX, 60);
+
+            // Подпись ставим ниже и по центру, чтобы не налезала
+            ctx.font = 'bold 14px monospace';
+            const subText = "собрать";
+            const subW = ctx.measureText(subText).width;
+            ctx.fillStyle = '#fcf5cf';
+            ctx.fillText(subText, W/2 - subW/2, 82);
+            ctx.shadowBlur = 0;
+        }
+        
+        function drawGameOver() {
+            if(!gameRunning) {
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                ctx.fillRect(0,0,W,H);
+                ctx.font = 'bold 38px "Segoe UI Emoji", monospace';
+                if(gameWon) {
+                    ctx.fillStyle = '#ffe5a3';
+                    ctx.fillText('🎉 Полина ты победила, хорошего дня!', W/2-360, H/2-50);
+                    ctx.font = '26px monospace';
+                    ctx.fillStyle = '#c3ff96';
+                    ctx.fillText('Время: ' + formatTimeMs(elapsedTimeMs), W/2-120, H/2+10);
+                    ctx.fillText('Нажми "НОВАЯ ИГРА"', W/2-135, H/2+55);
+                } else {
+                    ctx.fillStyle = '#ffe5a3';
+                    ctx.fillText('😭 ЛЯГУШОНОК УПАЛ...', W/2-195, H/2-50);
+                    ctx.font = '26px monospace';
+                    ctx.fillStyle = '#c3ff96';
+                    ctx.fillText('Нажми "НОВАЯ ИГРА"', W/2-135, H/2+40);
+                    ctx.font = '22px monospace';
+                    ctx.fillStyle = '#ffd966';
+                    ctx.fillText('🐸  🦗', W/2-32, H/2+95);
+                }
+            }
+        }
+        
+        // ----- ОСНОВНОЙ ЦИКЛ -----
+        function update() {
+            if(gameRunning) {
+                elapsedTimeMs = performance.now() - startTimeMs;
+                updateUI();
+                updateMovement();
+                handleCollisions();
+                updateJump();
+                
+                collectGrasshoppers();
+                checkWin();
+                checkGameOver();
+            }
+        }
+        
+        function draw() {
+            drawBackground();
+            drawPlatforms();
+            drawGrasshoppers();
+            drawFrog();
+            drawRemainingCounter();
+            drawGameOver();
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // ----- ИСПРАВЛЕННОЕ УПРАВЛЕНИЕ (ГАРАНТИРОВАННО РАБОТАЕТ) -----
+        function initControls() {
+            const handleKeyDown = (e) => {
+                const code = e.code;
+                // Стрелки, WASD, пробел
+                if (code === 'ArrowLeft' || code === 'ArrowRight' || code === 'KeyA' || code === 'KeyD' ||
+                    code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+                    e.preventDefault();
+                }
+                if (keys.hasOwnProperty(code)) {
+                    keys[code] = true;
+                }
+                // Доп. защита от прокрутки для пробела
+                if (code === 'Space') {
+                    e.preventDefault();
+                }
+            };
+            
+            const handleKeyUp = (e) => {
+                const code = e.code;
+                if (keys.hasOwnProperty(code)) {
+                    keys[code] = false;
+                }
+                if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW' ||
+                    code === 'ArrowLeft' || code === 'ArrowRight' || code === 'KeyA' || code === 'KeyD') {
+                    e.preventDefault();
+                }
+            };
+            
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+
+            window.addEventListener('blur', () => {
+                for (const k in keys) keys[k] = false;
+            });
+            
+            // Фокус на канвас
+            canvas.addEventListener('click', () => canvas.focus());
+            canvas.focus();
+            // Блокируем контекстное меню
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+        
+        // ----- РЕСТАРТ -----
+        document.getElementById('restartButton').addEventListener('click', () => {
+            resetGame();
+            gameRunning = true;
+        });
+        
+        function init() {
+            initControls();
+            resetGame();
+            gameLoop();
+        }
+        
+        init();
+    })();
+</script>
+</body>
+</html>
